@@ -27,7 +27,9 @@ var (
 )
 
 func init() {
-	registeredNotifiers[Slack] = NewSlackNotifier
+	if err := RegisterNotifier(Slack, NewSlackNotifier); err != nil {
+		panic(err.Error())
+	}
 
 	flags := pflag.NewFlagSet("slack", pflag.ContinueOnError)
 	flags.StringVar(&slackOauthToken, "slack-oauth-token", "", "The Slack oauth token to use.")

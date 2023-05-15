@@ -18,7 +18,9 @@ var (
 )
 
 func init() {
-	registeredNotifiers[File] = NewFileNotifier
+	if err := RegisterNotifier(File, NewFileNotifier); err != nil {
+		panic(err.Error())
+	}
 
 	flags := pflag.NewFlagSet("file-notifier", pflag.ContinueOnError)
 	flags.StringVar(&fileNotifierFilepath, "fn-file-path", "", "The file to use for the file notifier.")

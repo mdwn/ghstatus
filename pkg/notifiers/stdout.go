@@ -11,7 +11,9 @@ const (
 )
 
 func init() {
-	registeredNotifiers[Stdout] = NewStdoutNotifier
+	if err := RegisterNotifier(Stdout, NewStdoutNotifier); err != nil {
+		panic(err.Error())
+	}
 }
 
 // StdoutNotifier writes the output to stdout.
