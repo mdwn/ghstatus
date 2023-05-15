@@ -7,6 +7,7 @@ import (
 
 	"github.com/mdwn/ghstatus/pkg/notifier"
 	"github.com/spf13/pflag"
+	"go.uber.org/zap"
 )
 
 const (
@@ -36,7 +37,7 @@ type FileNotifier struct {
 }
 
 // NewFileNotifier will return a file notifier.
-func NewFileNotifier() (notifier.Notifier, error) {
+func NewFileNotifier(_ *zap.Logger) (notifier.Notifier, error) {
 	if fileNotifierFilepath == "" {
 		return nil, errors.New("file notifier needs the file path to be set")
 	}

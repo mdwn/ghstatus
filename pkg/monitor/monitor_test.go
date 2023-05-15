@@ -37,7 +37,7 @@ func TestMonitor(t *testing.T) {
 	clock := clockwork.NewFakeClock()
 
 	server, client := ghstatus.NewTestServerAndClient(t)
-	m := New(log, clock, client)
+	m := New(log, clock, client, true)
 
 	// Make this channel for the dummy notifier.
 	ch := make(chan notifier.Message, 1)

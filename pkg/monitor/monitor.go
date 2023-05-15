@@ -22,21 +22,23 @@ const (
 // Monitor will periodically poll the Github Status and issues updates
 // to the given callback.
 type Monitor struct {
-	log    *zap.Logger
-	clock  clockwork.Clock
-	client ghstatus.Client
+	log              *zap.Logger
+	clock            clockwork.Clock
+	client           ghstatus.Client
+	notifyOnFirstRun bool
 
 	notifiersMu sync.RWMutex
 	notifiers   map[string]notifier.Notifier
 }
 
 // New creates a new Github Status monitor.
-func New(log *zap.Logger, clock clockwork.Clock, client ghstatus.Client) *Monitor {
+func New(log *zap.Logger, clock clockwork.Clock, client ghstatus.Client, notifyOnFirstRun bool) *Monitor {
 	return &Monitor{
-		log:       logging.WithComponent(log, "monitor"),
-		clock:     clock,
-		client:    client,
-		notifiers: map[string]notifier.Notifier{},
+		log:              logging.WithComponent(log, "monitor"),
+		clock:            clock,
+		client:           client,
+		notifyOnFirstRun: notifyOnFirstRun,
+		notifiers:        map[string]notifier.Notifier{},
 	}
 }
 
@@ -80,6 +82,12 @@ func (m *Monitor) detectChangesAndNotify(ctx context.Context, lastSummary ghstat
 	summary, err := m.client.Summary(ctx)
 	if err != nil {
 		return lastSummary, fmt.Errorf("error getting summary: %w", err)
+	}
+
+	// Skip the first notification if notifyOnFirstRun is disabled.
+	if lastSummary.Page.UpdatedAt.IsZero() && !m.notifyOnFirstRun {
+		m.log.Debug("Notify on first run is disabled, skipping the notification.")
+		return summary, nil
 	}
 
 	// If the summary page hasn't updated, no need to continue.

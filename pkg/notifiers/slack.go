@@ -7,9 +7,11 @@ import (
 	"strings"
 
 	"github.com/mdwn/ghstatus/pkg/ghstatus"
+	"github.com/mdwn/ghstatus/pkg/logging"
 	"github.com/mdwn/ghstatus/pkg/notifier"
 	"github.com/slack-go/slack"
 	"github.com/spf13/pflag"
+	"go.uber.org/zap"
 )
 
 const (
@@ -41,12 +43,13 @@ func init() {
 
 // SlackNotifier writes the output to Slack.
 type SlackNotifier struct {
+	log       *zap.Logger
 	client    *slack.Client
 	channelID string
 }
 
 // NewSlackNotifier will return a Slack notifier.
-func NewSlackNotifier() (notifier.Notifier, error) {
+func NewSlackNotifier(log *zap.Logger) (notifier.Notifier, error) {
 	if slackOauthToken == "" {
 		return nil, errors.New("OAuth token must be supplied for the Slack notifier")
 	}
@@ -96,6 +99,7 @@ func NewSlackNotifier() (notifier.Notifier, error) {
 	}
 
 	return &SlackNotifier{
+		log:       logging.WithComponent(log, "slack"),
 		client:    slack.New(slackOauthToken),
 		channelID: channelID,
 	}, nil
@@ -115,10 +119,17 @@ func (s *SlackNotifier) Notify(ctx context.Context, msg notifier.Message) error 
 	s.changedIncidents(msg, blocks)
 	s.changedScheduledMaintenances(msg, blocks)
 
-	resp, resp2, err := s.client.PostMessageContext(ctx, s.channelID, slack.MsgOptionBlocks(blocks.BlockSet...))
-	if err != nil {
-		return fmt.Errorf("error posting message: %s, %s, %w", resp, resp2, err)
+	if len(blocks.BlockSet) == 0 {
+		s.log.Debug("Slack notifier found no changes.")
+		return nil
 	}
+
+	_, _, err := s.client.PostMessageContext(ctx, s.channelID, slack.MsgOptionBlocks(blocks.BlockSet...))
+	if err != nil {
+		return fmt.Errorf("error posting message: %w", err)
+	}
+
+	s.log.Debug("Slack notified of changes.")
 
 	return nil
 }
@@ -150,6 +161,8 @@ func (s *SlackNotifier) changedStatus(msg notifier.Message, blocks *slack.Blocks
 	blocks.BlockSet = append(blocks.BlockSet,
 		slack.NewHeaderBlock(slack.NewTextBlockObject(slack.PlainTextType, "Status", false, false)),
 		text)
+
+	s.log.Debug("Status change being sent to Slack")
 }
 
 // changedComponents updates the message to contain any information about the changed components.
@@ -177,6 +190,8 @@ func (s *SlackNotifier) changedComponents(msg notifier.Message, blocks *slack.Bl
 
 		blocks.BlockSet = append(blocks.BlockSet, text)
 	}
+
+	s.log.Debug("Components change being sent to Slack")
 }
 
 // changedIncidents updates the message to contain any information about the changed incidents.
@@ -218,6 +233,8 @@ func (s *SlackNotifier) changedIncidents(msg notifier.Message, blocks *slack.Blo
 
 		blocks.BlockSet = append(blocks.BlockSet, text)
 	}
+
+	s.log.Debug("Incidents change being sent to Slack")
 }
 
 // changedScheduledMaintenances updates the message to contain any information about the changed scheduled maintenances.
@@ -253,4 +270,6 @@ func (s *SlackNotifier) changedScheduledMaintenances(msg notifier.Message, block
 
 		blocks.BlockSet = append(blocks.BlockSet, text)
 	}
+
+	s.log.Debug("Scheduled maintenances change being sent to Slack")
 }

@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/mdwn/ghstatus/pkg/notifier"
+	"go.uber.org/zap"
 )
 
 const (
@@ -22,7 +23,7 @@ type StdoutNotifier struct {
 }
 
 // NewStdoutNotifier will return an stdout notifier.
-func NewStdoutNotifier() (notifier.Notifier, error) {
+func NewStdoutNotifier(_ *zap.Logger) (notifier.Notifier, error) {
 	return &StdoutNotifier{
 		WriterNotifier: NewWriterNotifier(os.Stdout),
 	}, nil

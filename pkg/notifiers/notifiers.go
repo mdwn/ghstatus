@@ -8,6 +8,7 @@ import (
 	"github.com/mdwn/ghstatus/pkg/notifier"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"go.uber.org/zap"
 )
 
 var (
@@ -39,7 +40,7 @@ func RegisterCommandFlags(cmd *cobra.Command) {
 }
 
 // NotifierCreator creates a notifier.
-type NotifierCreator func() (notifier.Notifier, error)
+type NotifierCreator func(log *zap.Logger) (notifier.Notifier, error)
 
 // ListNotifiers will list all notifier names.
 func ListNotifiers() []string {
@@ -55,7 +56,7 @@ func ListNotifiers() []string {
 }
 
 // GetNotifier will retrieve the notifier with the given name.
-func GetNotifier(name string) (notifier.Notifier, error) {
+func GetNotifier(log *zap.Logger, name string) (notifier.Notifier, error) {
 	registeredNotifiersMu.RLock()
 	defer registeredNotifiersMu.RUnlock()
 
@@ -64,7 +65,7 @@ func GetNotifier(name string) (notifier.Notifier, error) {
 		return nil, fmt.Errorf("no notifier named %s", name)
 	}
 
-	notifier, err := notifierCreator()
+	notifier, err := notifierCreator(log)
 	if err != nil {
 		return nil, fmt.Errorf("error creating notifier %s: %w", name, err)
 	}
