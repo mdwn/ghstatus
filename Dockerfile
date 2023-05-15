@@ -10,4 +10,4 @@ RUN go build -o ./out ./...
 FROM public.ecr.aws/docker/library/alpine:3.18.0 AS runner
 
 COPY --from=builder /go/src/github.com/mdwn/ghstatus/out/ghstatus /opt/ghstatus/ghstatus
-ENTRYPOINT /opt/ghstatus/ghstatus
+ENTRYPOINT ["/opt/ghstatus/ghstatus"]
