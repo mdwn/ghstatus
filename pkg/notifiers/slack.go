@@ -37,7 +37,7 @@ func init() {
 	flags.StringVar(&slackOauthToken, "slack-oauth-token", "", "The Slack oauth token to use.")
 	flags.StringVar(&slackChannel, "slack-channel", "", "The Slack channel to notify.")
 	flags.BoolVar(&slackJoinChannel, "slack-join-channel", false, "Whether the bot should attempt to join the channel.")
-	flags.FlagUsages()
+
 	notifierFlags.AddFlagSet(flags)
 }
 
@@ -151,7 +151,7 @@ func (s *SlackNotifier) changedStatus(msg notifier.Message, blocks *slack.Blocks
 	case ghstatus.None:
 		slackMsgText = fmt.Sprintf("%s Github reports no outages", slackGoodEmoji)
 	default:
-		slackMsgText = fmt.Sprintf("%s Github is reporting a **%s** outage", slackBadEmoji, status.Indicator)
+		slackMsgText = fmt.Sprintf("%s Github is reporting a *%s* outage", slackBadEmoji, status.Indicator)
 	}
 
 	text := slack.NewSectionBlock(slack.NewTextBlockObject(
