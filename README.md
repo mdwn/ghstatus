@@ -115,17 +115,21 @@ This notifier writes changes to stdout.
 
 ### file
 
-This notifier writes changes to a configured file. Requires the following flags:
+This notifier writes changes to a configured file. Requires the following flags or environment variables:
 
-- `--fn-file-path` to the expected output file.
+| Flag | Env | Type | Description |
+|------|-----|------|-------------|
+| `--fn-file-path` | `FN_FILEPATH` | string | The output file. |
 
 ### slack
 
-This notifier writes changes to a Slack channel. Requires the following flags:
+This notifier writes changes to a Slack channel. Requires the following flags or environment variables:
 
-- `--slack-oauth-token` to set the Slack oauth token.
-- `--slack-channel` the Slack channel to post updates to. Can be either of the form `#channel-name` or the actual channel ID.
-- `--slack-join-channel` whether the bot should attempt to join the channel.
+| Flag | Env | Type | Description |
+|------|-----|------|-------------|
+| `--slack-oauth-token` | `SLACK_OAUTH_TOKEN` | string | The Slack oauth token. |
+| `--slack-channel` | `SLACK_CHANNEL` | string | The Slack channel to post updates to. Can be either of the form `#channel-name` or the actual channel ID.
+| `--slack-join-channel` | `SLACK_JOIN_CHANNEL` | boolean | Whether the bot should attempt to join the channel. |
 
 The oauth token requires the following Slack scopes:
 

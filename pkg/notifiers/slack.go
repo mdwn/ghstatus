@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/mdwn/ghstatus/pkg/ghstatus"
 	"github.com/mdwn/ghstatus/pkg/logging"
 	"github.com/mdwn/ghstatus/pkg/notifier"
+	"github.com/ory/viper"
 	"github.com/slack-go/slack"
 	"github.com/spf13/pflag"
 	"go.uber.org/zap"
@@ -20,12 +22,18 @@ const (
 	slackGoodEmoji = ":white_check_mark:"
 	slackBadEmoji  = ":warning:"
 	slackInfoEmoji = ":information_source:"
-)
 
-var (
-	slackOauthToken  string
-	slackChannel     string
-	slackJoinChannel bool
+	slackOAuthTokenCfg  = "slack.oauth.token"
+	slackOAuthTokenFlag = "slack-oauth-token"
+	slackOAuthTokenEnv  = "SLACK_OAUTH_TOKEN"
+
+	slackChannelCfg  = "slack.channel"
+	slackChannelFlag = "slack-channel"
+	slackChannelEnv  = "SLACK_CHANNEL"
+
+	slackJoinChannelCfg  = "slack.join.channel"
+	slackJoinChannelFlag = "slack-join-channel"
+	slackJoinChannelEnv  = "SLACK_JOIN_CHANNEL"
 )
 
 func init() {
@@ -34,11 +42,27 @@ func init() {
 	}
 
 	flags := pflag.NewFlagSet("slack", pflag.ContinueOnError)
-	flags.StringVar(&slackOauthToken, "slack-oauth-token", "", "The Slack oauth token to use.")
-	flags.StringVar(&slackChannel, "slack-channel", "", "The Slack channel to notify.")
-	flags.BoolVar(&slackJoinChannel, "slack-join-channel", false, "Whether the bot should attempt to join the channel.")
+	flags.String(slackOAuthTokenFlag, "", "The Slack oauth token to use.")
+	flags.String(slackChannelFlag, "", "The Slack channel to notify.")
+	flags.Bool(slackJoinChannelFlag, false, "Whether the bot should attempt to join the channel.")
 
 	notifierFlags.AddFlagSet(flags)
+
+	err := multierror.Append(nil,
+		viper.BindPFlag(slackOAuthTokenCfg, flags.Lookup(slackOAuthTokenFlag)),
+		viper.BindEnv(slackOAuthTokenCfg, slackOAuthTokenEnv),
+
+		viper.BindPFlag(slackChannelCfg, flags.Lookup(slackChannelFlag)),
+		viper.BindEnv(slackChannelCfg, slackChannelEnv),
+
+		viper.BindPFlag(slackJoinChannelCfg, flags.Lookup(slackJoinChannelFlag)),
+		viper.BindEnv(slackJoinChannelCfg, slackJoinChannelEnv),
+	)
+
+	if err.ErrorOrNil() != nil {
+		panic(fmt.Sprintf("error binding Slack configs: %v", err))
+	}
+
 }
 
 // SlackNotifier writes the output to Slack.
@@ -50,7 +74,10 @@ type SlackNotifier struct {
 
 // NewSlackNotifier will return a Slack notifier.
 func NewSlackNotifier(log *zap.Logger) (notifier.Notifier, error) {
-	if slackOauthToken == "" {
+	slackOAuthToken := viper.GetString(slackOAuthTokenCfg)
+	slackChannel := viper.GetString(slackChannelCfg)
+
+	if slackOAuthToken == "" {
 		return nil, errors.New("OAuth token must be supplied for the Slack notifier")
 	}
 
@@ -58,7 +85,7 @@ func NewSlackNotifier(log *zap.Logger) (notifier.Notifier, error) {
 		return nil, errors.New("channel must be supplied for the Slack notifier")
 	}
 
-	client := slack.New(slackOauthToken)
+	client := slack.New(slackOAuthToken)
 
 	var channelID string
 	if strings.HasPrefix(slackChannel, "#") {
@@ -91,7 +118,7 @@ func NewSlackNotifier(log *zap.Logger) (notifier.Notifier, error) {
 		return nil, fmt.Errorf("unable to find channel %s", slackChannel)
 	}
 
-	if slackJoinChannel {
+	if viper.GetBool(slackJoinChannelCfg) {
 		_, _, _, err := client.JoinConversation(channelID)
 		if err != nil {
 			return nil, fmt.Errorf("error joining channel: %w", err)
@@ -100,7 +127,7 @@ func NewSlackNotifier(log *zap.Logger) (notifier.Notifier, error) {
 
 	return &SlackNotifier{
 		log:       logging.WithComponent(log, "slack"),
-		client:    slack.New(slackOauthToken),
+		client:    slack.New(slackOAuthToken),
 		channelID: channelID,
 	}, nil
 }

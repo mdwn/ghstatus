@@ -6,7 +6,6 @@ import (
 	"io"
 
 	"github.com/mdwn/ghstatus/pkg/notifier"
-	"go.uber.org/zap"
 )
 
 const (
@@ -17,7 +16,6 @@ const (
 // meant to be used by other notifiers and not directly, so it is
 // not registered with the notifier registry.
 type WriterNotifier struct {
-	log    *zap.Logger
 	writer io.Writer
 }
 

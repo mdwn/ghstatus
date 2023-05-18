@@ -5,17 +5,19 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/mdwn/ghstatus/pkg/notifier"
+	"github.com/ory/viper"
 	"github.com/spf13/pflag"
 	"go.uber.org/zap"
 )
 
 const (
 	File = "file"
-)
 
-var (
-	fileNotifierFilepath string
+	fileNotifierFilepathCfg  = "file.filepath"
+	fileNotifierFilepathFlag = "fn-filepath"
+	fileNotifierFilepathEnv  = "FN_FILEPATH"
 )
 
 func init() {
@@ -24,9 +26,18 @@ func init() {
 	}
 
 	flags := pflag.NewFlagSet("file-notifier", pflag.ContinueOnError)
-	flags.StringVar(&fileNotifierFilepath, "fn-file-path", "", "The file to use for the file notifier.")
-	flags.FlagUsages()
+	flags.String(fileNotifierFilepathFlag, "", "The file to use for the file notifier.")
+
 	notifierFlags.AddFlagSet(flags)
+
+	err := multierror.Append(nil,
+		viper.BindPFlag(fileNotifierFilepathCfg, flags.Lookup(fileNotifierFilepathFlag)),
+		viper.BindEnv(fileNotifierFilepathCfg, fileNotifierFilepathEnv),
+	)
+
+	if err.ErrorOrNil() != nil {
+		panic(fmt.Sprintf("error binding file notifier configs: %v", err))
+	}
 }
 
 // FileNotifier writes the output to the given file.
@@ -38,6 +49,8 @@ type FileNotifier struct {
 
 // NewFileNotifier will return a file notifier.
 func NewFileNotifier(_ *zap.Logger) (notifier.Notifier, error) {
+	fileNotifierFilepath := viper.GetString(fileNotifierFilepathCfg)
+
 	if fileNotifierFilepath == "" {
 		return nil, errors.New("file notifier needs the file path to be set")
 	}

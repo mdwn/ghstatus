@@ -17,9 +17,6 @@ var (
 	notifierFlags         = pflag.NewFlagSet("notifiers", pflag.ContinueOnError)
 )
 
-func init() {
-}
-
 // RegisterNotifier will register the given notifier and the given notifier creation function.
 func RegisterNotifier(name string, creator NotifierCreator) error {
 	registeredNotifiersMu.Lock()
